@@ -4,7 +4,9 @@ export BUCKET=gs://${PROJECT_ID}-bucket
 export PIPELINE_FOLDER=${BUCKET}
 export MAIN_CLASS_NAME=com.moonbank.pipeline.MarsActivitiesPipeline
 export RUNNER=DataflowRunner
-export INPUT_PATH=${PIPELINE_FOLDER}/mars_sample.csv
+#export PUBSUB_TOPIC=projects/${PROJECT_ID}/topics/my_topic
+export PUBSUB_TOPIC=projects/moonbank-mars/topics/activities
+export WINDOW_DURATION=60
 export RAW_TABLE=${PROJECT_ID}:mars.raw
 export OUTPUT_TABLE=${PROJECT_ID}:mars.activities
 
@@ -17,6 +19,7 @@ mvn compile exec:java \
 --stagingLocation=${PIPELINE_FOLDER}/staging \
 --tempLocation=${PIPELINE_FOLDER}/temp \
 --runner=${RUNNER} \
---inputPath=${INPUT_PATH} \
+--inputTopic=${PUBSUB_TOPIC} \
+--windowDuration=${WINDOW_DURATION} \
 --rawTable=${RAW_TABLE} \
 --outputTable=${OUTPUT_TABLE}"

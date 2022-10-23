@@ -21,10 +21,14 @@ import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
+import org.apache.beam.sdk.io.gcp.pubsub.PubsubIO;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.*;
+import org.apache.beam.sdk.transforms.windowing.FixedWindows;
+import org.apache.beam.sdk.transforms.windowing.Window;
 import org.apache.beam.sdk.values.PCollection;
+import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,15 +47,19 @@ public class MarsActivitiesPipeline {
      * executor at the command-line.
      */
     public interface Options extends DataflowPipelineOptions {
-        @Description("Path to events.json")
-        String getInputPath();
-        void setInputPath(String s);
+        @Description("Pubsub topic")
+        String getInputTopic();
+        void setInputTopic(String s);
 
-        @Description("BigQuery table name")
+        @Description("Window duration length, in seconds")
+        Integer getWindowDuration();
+        void setWindowDuration(Integer windowDuration);
+
+        @Description("BigQuery activities table")
         String getOutputTable();
         void setOutputTable(String s);
 
-        @Description("BigQuery table name")
+        @Description("BigQuery raw table")
         String getRawTable();
         void setRawTable(String s);
     }
@@ -96,7 +104,9 @@ public class MarsActivitiesPipeline {
          */
         PCollection<Activity> logs = pipeline
                 // Read in lines from GCS and Parse to Activities
-                .apply("ReadFromGCS", TextIO.read().from(options.getInputPath()))
+                .apply("ReadMessage", PubsubIO.readStrings()
+                    .withTimestampAttribute("timestamp")
+                    .fromTopic(options.getInputTopic()))
                 .apply("ParseCsv", ParDo.of( new DoFn<String, Activity>() {
                          @ProcessElement
                          public void processElement(@Element String csv, OutputReceiver<Activity> r) {
@@ -107,7 +117,8 @@ public class MarsActivitiesPipeline {
                 ));
 
         // Write the activity to BigQuery
-        logs.apply("WriteToBQ",
+        logs.apply("WindowByMinute", Window.into(FixedWindows.of(Duration.standardSeconds(options.getWindowDuration()))))
+            .apply("WriteToBQ",
                         BigQueryIO.<Activity>write().to(options.getOutputTable()).useBeamSchema()
                                 .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_TRUNCATE)
                                 .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
