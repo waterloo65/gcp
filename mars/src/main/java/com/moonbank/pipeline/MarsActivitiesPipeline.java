@@ -16,7 +16,6 @@
 
 package com.moonbank.pipeline;
 
-import com.google.gson.Gson;
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
@@ -24,12 +23,12 @@ import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.apache.beam.sdk.schemas.transforms.Group;
-import org.apache.beam.sdk.schemas.transforms.Select;
 import org.apache.beam.sdk.transforms.*;
-import org.apache.beam.sdk.values.Row;
+import org.apache.beam.sdk.values.PCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.math.BigDecimal;
 
 
 public class MarsActivitiesPipeline {
@@ -46,17 +45,21 @@ public class MarsActivitiesPipeline {
     public interface Options extends DataflowPipelineOptions {
         @Description("Path to events.json")
         String getInputPath();
-        void setInputPath(String inputPath);
+        void setInputPath(String s);
 
         @Description("BigQuery table name")
-        String getTableName();
-        void setTableName(String tableName);
+        String getOutputTable();
+        void setOutputTable(String s);
+
+        @Description("BigQuery table name")
+        String getRawTable();
+        void setRawTable(String s);
     }
 
     /**
      * The main entry-point for pipeline execution. This method will start the
      * pipeline but will not wait for it's execution to finish. If blocking
-     * execution is required, use the {@link BatchUserTrafficPipeline#run(Options)} method to
+     * execution is required, use the {@link MarsActivitiesPipeline#run(Options)} method to
      * start the pipeline and invoke {@code result.waitUntilFinish()} on the
      * {@link PipelineResult}.
      *
@@ -83,7 +86,7 @@ public class MarsActivitiesPipeline {
 
         // Create the pipeline
         Pipeline pipeline = Pipeline.create(options);
-        options.setJobName("batch-user-traffic-pipeline-" + System.currentTimeMillis());
+        options.setJobName("mars-activities-" + System.currentTimeMillis());
 
         /*
          * Steps:
@@ -91,36 +94,45 @@ public class MarsActivitiesPipeline {
          * 2) Transform something
          * 3) Write something
          */
-
-        pipeline
-                // Read in lines from GCS and Parse to CommonLog
+        PCollection<Activity> logs = pipeline
+                // Read in lines from GCS and Parse to Activities
                 .apply("ReadFromGCS", TextIO.read().from(options.getInputPath()))
-                .apply("ParseJson", ParDo.of(new DoFn<String, CommonLog>() {
-                                                 @ProcessElement
-                                                 public void processElement(@Element String json, OutputReceiver<CommonLog> r) throws Exception {
-                                                     Gson gson = new Gson();
-                                                     CommonLog commonLog = gson.fromJson(json, CommonLog.class);
-                                                     r.output(commonLog);
-                                                 }
-                                             }
-                ))
+                .apply("ParseCsv", ParDo.of( new DoFn<String, Activity>() {
+                         @ProcessElement
+                         public void processElement(@Element String csv, OutputReceiver<Activity> r) {
+                             var activity = convertCsv2Activity(csv);
+                            r.output(activity);
+                         }
+                     }
+                ));
 
-                // Have to mention field twice, in case of multiple agg fields and multiple agg functions
-                .apply("PerUserAggregations", Group.<CommonLog>byFieldNames("user_id")
-                        .aggregateField("user_id", Count.combineFn(), "pageviews")
-                        .aggregateField("num_bytes", Sum.ofLongs(), "total_bytes")
-                        .aggregateField("num_bytes", Max.ofLongs(), "max_num_bytes")
-                        .aggregateField("num_bytes", Min.ofLongs(), "min_num_bytes"))
-
-                // Need a select statement to unnest the <"Key", "Value"> Row returned by the previous transform
-                .apply("UnnestFields", Select.fieldNames("key.user_id", "value.pageviews", "value.total_bytes", "value.max_num_bytes", "value.min_num_bytes"))
-                .apply("WriteToBQ",
-                        BigQueryIO.<Row>write().to(options.getTableName()).useBeamSchema()
+        // Write the activity to BigQuery
+        logs.apply("WriteToBQ",
+                        BigQueryIO.<Activity>write().to(options.getInputPath()).useBeamSchema()
                                 .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_TRUNCATE)
                                 .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
 
+        // Write the raw logs to BigQuery
+        logs.apply("WriteRawToBQ",
+                        BigQueryIO.<Activity>write().to(options.getRawTable()).useBeamSchema()
+                                .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_TRUNCATE)
+                                .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
         LOG.info("Building pipeline...");
 
         return pipeline.run();
+    }
+
+    public static Activity convertCsv2Activity(String input) {
+        var output = input.split(",");
+        return Activity.builder()
+                .timestamp(output[0])
+                .ipAddr(output[1])
+                .action(output[2])
+                .srcAccount(output[3])
+                .destAccount(output[4])
+                .amount(new BigDecimal(output[5]))
+                .customerName(output[6])
+                .build();
+
     }
 }
