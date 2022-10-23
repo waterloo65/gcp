@@ -4,8 +4,10 @@ export BUCKET=gs://${PROJECT_ID}-bucket
 export PIPELINE_FOLDER=${BUCKET}
 export MAIN_CLASS_NAME=com.moonbank.pipeline.MarsActivitiesPipeline
 export RUNNER=DataflowRunner
-export INPUT_PATH=${PIPELINE_FOLDER}/events.json
-export TABLE_NAME=${PROJECT_ID}:logs.user_trafficcd $BASE_DIR
+export INPUT_PATH=${PIPELINE_FOLDER}/mars_sample.csv
+export RAW_TABLE=${PROJECT_ID}:mars.raw
+export OUTPUT_TABLE=${PROJECT_ID}:mars.activities
+
 mvn compile exec:java \
 -Dexec.mainClass=${MAIN_CLASS_NAME} \
 -Dexec.cleanupDaemonThreads=false \
@@ -16,4 +18,5 @@ mvn compile exec:java \
 --tempLocation=${PIPELINE_FOLDER}/temp \
 --runner=${RUNNER} \
 --inputPath=${INPUT_PATH} \
---tableName=${TABLE_NAME}"
+--rawTable=${RAW_TABLE} \
+--outputTable=${OUTPUT_TABLE}"

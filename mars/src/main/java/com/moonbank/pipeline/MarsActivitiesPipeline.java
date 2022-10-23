@@ -108,7 +108,7 @@ public class MarsActivitiesPipeline {
 
         // Write the activity to BigQuery
         logs.apply("WriteToBQ",
-                        BigQueryIO.<Activity>write().to(options.getInputPath()).useBeamSchema()
+                        BigQueryIO.<Activity>write().to(options.getOutputTable()).useBeamSchema()
                                 .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_TRUNCATE)
                                 .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
 
