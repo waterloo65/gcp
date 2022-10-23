@@ -121,7 +121,7 @@ public class MarsActivitiesPipeline {
         logs.apply("WindowByMinute", Window.into(FixedWindows.of(Duration.standardSeconds(options.getWindowDuration()))))
             .apply("WriteToBQ",
                         BigQueryIO.<Activity>write().to(options.getOutputTable()).useBeamSchema()
-                                .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_TRUNCATE)
+                                .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
                                 .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
 
         // Write the raw logs to BigQuery
