@@ -1,1 +1,1 @@
-# gcp
+# Project related to GCP studies
