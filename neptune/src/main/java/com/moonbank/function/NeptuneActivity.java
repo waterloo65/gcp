@@ -9,7 +9,7 @@ import org.apache.beam.sdk.schemas.annotations.DefaultSchema;
 import java.math.BigDecimal;
 
 @Builder
-@NoArgsConstructor
+@Required
 @DefaultSchema(JavaFieldSchema.class)
 @EqualsAndHashCode
 public class Activity {

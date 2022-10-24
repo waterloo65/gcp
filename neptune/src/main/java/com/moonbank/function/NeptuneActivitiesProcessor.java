@@ -23,14 +23,17 @@ import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
 import org.apache.beam.sdk.io.gcp.pubsub.PubsubIO;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.apache.beam.sdk.transforms.MapElements;
+import org.apache.beam.sdk.transforms.DoFn;
+import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.transforms.windowing.FixedWindows;
 import org.apache.beam.sdk.transforms.windowing.Window;
 import org.apache.beam.sdk.values.PCollection;
-import org.apache.beam.sdk.values.TypeDescriptor;
+import org.apache.beam.sdk.values.Row;
 import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.math.BigDecimal;
 
 
 public class MarsActivitiesPipeline {
@@ -100,25 +103,30 @@ public class MarsActivitiesPipeline {
          * 2) Transform something
          * 3) Write something
          */
-        PCollection<MarsActivity> logs = pipeline
+        PCollection<Activity> logs = pipeline
                 // Read in lines from GCS and Parse to Activities
                 .apply("ReadMessage", PubsubIO.readStrings()
                     .withTimestampAttribute("timestamp")
                     .fromTopic(options.getInputTopic()))
-                .apply("ParseCsv", MapElements
-                        .into(TypeDescriptor.of(MarsActivity.class))
-                        .via(MarsActivity::fromCsv));
+                .apply("ParseCsv", ParDo.of( new DoFn<String, Activity>() {
+                         @ProcessElement
+                         public void processElement(@Element String csv, OutputReceiver<Activity> r) {
+                             var activity = convertCsv2Activity(csv);
+                            r.output(activity);
+                         }
+                     }
+                ));
 
         // Write the activity to BigQuery
         logs.apply("WindowByMinute", Window.into(FixedWindows.of(Duration.standardSeconds(options.getWindowDuration()))))
             .apply("WriteToBQ",
-                        BigQueryIO.<MarsActivity>write().to(options.getOutputTable()).useBeamSchema()
+                        BigQueryIO.<Activity>write().to(options.getOutputTable()).useBeamSchema()
                                 .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
                                 .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
 
         // Write the raw logs to BigQuery
         logs.apply("WriteRawToBQ",
-                        BigQueryIO.<MarsActivity>write().to(options.getRawTable()).useBeamSchema()
+                        BigQueryIO.<Activity>write().to(options.getRawTable()).useBeamSchema()
                                 .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
                                 .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
 
@@ -127,4 +135,17 @@ public class MarsActivitiesPipeline {
         return pipeline.run();
     }
 
+    public static Activity convertCsv2Activity(String input) {
+        var output = input.split(",");
+        return Activity.builder()
+                .timestamp(output[0])
+                .ipAddr(output[1])
+                .action(output[2])
+                .srcAccount(output[3])
+                .destAccount(output[4])
+                .amount(new BigDecimal(output[5]))
+                .customerName(output[6])
+                .build();
+
+    }
 }
