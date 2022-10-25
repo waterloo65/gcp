@@ -17,6 +17,7 @@
 package com.moonbank.function;
 
 import com.google.api.services.bigquery.model.TableFieldSchema;
+import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
 import com.google.common.collect.ImmutableList;
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
@@ -31,6 +32,7 @@ import org.apache.beam.sdk.transforms.MapElements;
 import org.apache.beam.sdk.transforms.windowing.FixedWindows;
 import org.apache.beam.sdk.transforms.windowing.Window;
 import org.apache.beam.sdk.values.PCollection;
+import org.apache.beam.sdk.values.Row;
 import org.apache.beam.sdk.values.TypeDescriptor;
 import org.joda.time.Duration;
 import org.slf4j.Logger;
@@ -113,7 +115,8 @@ public class MarsActivitiesPipeline {
         // Write the raw logs to BigQuery
         logs.apply("WriteRawToBQ",
                 BigQueryIO.<String>write().to(options.getRawTable())
-                        .withSchema(rawMessageSchema())
+                        //.withSchema(rawMessageSchema())
+                        .withFormatFunction(rawMessage -> new TableRow().set("message", rawMessage))
                         .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
                         .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_NEVER));
 
