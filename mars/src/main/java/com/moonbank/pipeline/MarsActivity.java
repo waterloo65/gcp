@@ -1,14 +1,15 @@
 package com.moonbank.pipeline;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
-import lombok.RequiredArgsConstructor;
 import org.apache.beam.sdk.schemas.JavaFieldSchema;
 import org.apache.beam.sdk.schemas.annotations.DefaultSchema;
 
 import java.math.BigDecimal;
 
 @Builder
+@AllArgsConstructor
 @DefaultSchema(JavaFieldSchema.class)
 @EqualsAndHashCode
 public class MarsActivity {
