@@ -16,6 +16,9 @@
 
 package com.moonbank.function;
 
+import com.google.api.services.bigquery.model.TableFieldSchema;
+import com.google.api.services.bigquery.model.TableSchema;
+import com.google.common.collect.ImmutableList;
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
@@ -23,6 +26,7 @@ import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
 import org.apache.beam.sdk.io.gcp.pubsub.PubsubIO;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.apache.beam.sdk.schemas.Schema;
 import org.apache.beam.sdk.transforms.MapElements;
 import org.apache.beam.sdk.transforms.windowing.FixedWindows;
 import org.apache.beam.sdk.transforms.windowing.Window;
@@ -109,6 +113,7 @@ public class MarsActivitiesPipeline {
         // Write the raw logs to BigQuery
         logs.apply("WriteRawToBQ",
                 BigQueryIO.<String>write().to(options.getRawTable())
+                        .withSchema(rawMessageSchema())
                         .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
                         .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_NEVER));
 
@@ -126,6 +131,14 @@ public class MarsActivitiesPipeline {
         LOG.info("Building pipeline...");
 
         return pipeline.run();
+    }
+
+    private static TableSchema rawMessageSchema() {
+        return new TableSchema()
+                .setFields(
+                        ImmutableList.of(
+                            new TableFieldSchema().setName("message").setType("STRING").setMode("NULLABLE")
+                ));
     }
 
 }
