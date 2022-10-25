@@ -16,33 +16,33 @@ import java.math.BigDecimal;
 public class MarsActivity {
 
     String timestamp;
-    @SchemaFieldName("ipaddr")
+//    @SchemaFieldName("ipaddr")
     String ipAddr;
     String action;
-    @SchemaFieldName("srcacct")
+//    @SchemaFieldName("srcacct")
     String srcAccount;
-    @SchemaFieldName("destacct")
+//    @SchemaFieldName("destacct")
     String destAccount;
     BigDecimal amount;
-    @SchemaFieldName("customername")
+//    @SchemaFieldName("customername")
     String customerName;
 
-    @SchemaCreate
-    public MarsActivity(String timestamp,
-                        String ipAddr,
-                        String action,
-                        String srcAccount,
-                        String destAccount,
-                        BigDecimal amount,
-                        String customerName) {
-        this.timestamp = timestamp;
-        this.ipAddr = ipAddr;
-        this.action = action;
-        this.srcAccount = srcAccount;
-        this.destAccount = destAccount;
-        this.amount = amount;
-        this.customerName = customerName;
-    }
+//    @SchemaCreate
+//    public MarsActivity(String timestamp,
+//                        String ipAddr,
+//                        String action,
+//                        String srcAccount,
+//                        String destAccount,
+//                        BigDecimal amount,
+//                        String customerName) {
+//        this.timestamp = timestamp;
+//        this.ipAddr = ipAddr;
+//        this.action = action;
+//        this.srcAccount = srcAccount;
+//        this.destAccount = destAccount;
+//        this.amount = amount;
+//        this.customerName = customerName;
+//    }
 
     public static MarsActivity fromCsv(String input) {
         var output = input.split(",");

@@ -124,9 +124,10 @@ public class MarsActivitiesPipeline {
         logs.apply("ParseCsv", MapElements
                 .into(TypeDescriptor.of(MarsActivity.class))
                 .via(MarsActivity::fromCsv))
-            .apply("WindowByMinute", Window.into(FixedWindows.of(Duration.standardSeconds(options.getWindowDuration()))))
+//            .apply("WindowByMinute", Window.into(FixedWindows.of(Duration.standardSeconds(options.getWindowDuration()))))
             .apply("WriteToBQ",
-                        BigQueryIO.<MarsActivity>write().to(options.getOutputTable()).useBeamSchema()
+                        BigQueryIO.<MarsActivity>write().to(options.getOutputTable())
+                                .useBeamSchema()
                                 .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
                                 .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_NEVER));
 
