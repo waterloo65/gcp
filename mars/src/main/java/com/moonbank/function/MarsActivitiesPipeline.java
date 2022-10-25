@@ -28,7 +28,10 @@ import org.apache.beam.sdk.io.gcp.pubsub.PubsubIO;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.schemas.Schema;
+import org.apache.beam.sdk.schemas.transforms.Select;
+import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.MapElements;
+import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.transforms.windowing.FixedWindows;
 import org.apache.beam.sdk.transforms.windowing.Window;
 import org.apache.beam.sdk.values.PCollection;
@@ -37,6 +40,8 @@ import org.apache.beam.sdk.values.TypeDescriptor;
 import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.math.BigDecimal;
 
 
 public class MarsActivitiesPipeline {
@@ -83,7 +88,16 @@ public class MarsActivitiesPipeline {
         run(options);
     }
 
-
+    public static final Schema activitySchema = Schema
+            .builder()
+            .addStringField("timestamp")
+            .addStringField("ipaddr")
+            .addStringField("timestamp")
+            .addStringField("srcacct")
+            .addStringField("destacct")
+            .addDecimalField("amount")
+            .addStringField("customername")
+            .build();
 
     /**
      * Runs the pipeline to completion with the specified options. This method does
@@ -124,9 +138,23 @@ public class MarsActivitiesPipeline {
         logs.apply("ParseCsv", MapElements
                 .into(TypeDescriptor.of(MarsActivity.class))
                 .via(MarsActivity::fromCsv))
-//            .apply("WindowByMinute", Window.into(FixedWindows.of(Duration.standardSeconds(options.getWindowDuration()))))
-            .apply("WriteToBQ",
-                        BigQueryIO.<MarsActivity>write().to(options.getOutputTable())
+                .apply("ConvertToRow", ParDo.of(new DoFn<MarsActivity, Row>() {
+                    @ProcessElement
+                    public void processElement(@Element MarsActivity activity, OutputReceiver<Row> r) {
+                        Row row = Row.withSchema(activitySchema)
+                                .addValue(activity.timestamp)
+                                .addValue(activity.ipAddr)
+                                .addValue(activity.action)
+                                .addValue(activity.srcAccount)
+                                .addValue(activity.destAccount)
+                                .addValue(activity.amount)
+                                .addValue(activity.customerName)
+                                .build();
+                        r.output(row);
+                    }
+                })).setRowSchema(activitySchema)
+                .apply("WriteToBQ",
+                        BigQueryIO.<Row>write().to(options.getOutputTable())
                                 .useBeamSchema()
                                 .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
                                 .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_NEVER));
