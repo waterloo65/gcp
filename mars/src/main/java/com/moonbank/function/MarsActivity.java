@@ -5,6 +5,7 @@ import lombok.EqualsAndHashCode;
 import org.apache.beam.sdk.schemas.JavaFieldSchema;
 import org.apache.beam.sdk.schemas.annotations.DefaultSchema;
 import org.apache.beam.sdk.schemas.annotations.SchemaCreate;
+import org.apache.beam.sdk.schemas.annotations.SchemaFieldName;
 
 import java.math.BigDecimal;
 
@@ -14,11 +15,15 @@ import java.math.BigDecimal;
 public class MarsActivity {
 
     String timestamp;
+    @SchemaFieldName("ipaddr")
     String ipAddr;
     String action;
+    @SchemaFieldName("srcacct")
     String srcAccount;
+    @SchemaFieldName("destacct")
     String destAccount;
     BigDecimal amount;
+    @SchemaFieldName("customername")
     String customerName;
 
     @SchemaCreate

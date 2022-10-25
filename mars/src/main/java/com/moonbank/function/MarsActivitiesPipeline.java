@@ -100,27 +100,28 @@ public class MarsActivitiesPipeline {
          * 2) Transform something
          * 3) Write something
          */
-        PCollection<MarsActivity> logs = pipeline
+        PCollection<String> logs = pipeline
                 // Read in lines from GCS and Parse to Activities
                 .apply("ReadMessage", PubsubIO.readStrings()
                     .withTimestampAttribute("timestamp")
-                    .fromTopic(options.getInputTopic()))
-                .apply("ParseCsv", MapElements
-                        .into(TypeDescriptor.of(MarsActivity.class))
-                        .via(MarsActivity::fromCsv));
+                    .fromTopic(options.getInputTopic()));
+
+        // Write the raw logs to BigQuery
+        logs.apply("WriteRawToBQ",
+                BigQueryIO.<String>write().to(options.getRawTable()).useBeamSchema()
+                        .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
+                        .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
 
         // Write the activity to BigQuery
-        logs.apply("WindowByMinute", Window.into(FixedWindows.of(Duration.standardSeconds(options.getWindowDuration()))))
+        logs.apply("ParseCsv", MapElements
+                .into(TypeDescriptor.of(MarsActivity.class))
+                .via(MarsActivity::fromCsv))
+            .apply("WindowByMinute", Window.into(FixedWindows.of(Duration.standardSeconds(options.getWindowDuration()))))
             .apply("WriteToBQ",
                         BigQueryIO.<MarsActivity>write().to(options.getOutputTable()).useBeamSchema()
                                 .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
                                 .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
 
-        // Write the raw logs to BigQuery
-        logs.apply("WriteRawToBQ",
-                        BigQueryIO.<MarsActivity>write().to(options.getRawTable()).useBeamSchema()
-                                .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
-                                .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
 
         LOG.info("Building pipeline...");
 
