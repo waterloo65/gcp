@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.moonbank.pipeline;
+package com.moonbank.function;
 
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
 import org.apache.beam.sdk.Pipeline;

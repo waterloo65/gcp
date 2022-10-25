@@ -1,25 +1,31 @@
-package com.moonbank.pipeline;
+package com.moonbank.function;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import org.apache.beam.sdk.schemas.JavaFieldSchema;
-import org.apache.beam.sdk.schemas.annotations.DefaultSchema;
-
-import java.math.BigDecimal;
 
 @Builder
-@Required
-@DefaultSchema(JavaFieldSchema.class)
 @EqualsAndHashCode
-public class Activity {
+public class NeptuneActivity {
 
-    String timestamp;
+    String id;
     String ipAddr;
     String action;
-    String srcAccount;
-    String destAccount;
-    BigDecimal amount;
-    String customerName;
+    String accountNo;
+    Integer actionId;
+    String name;
+    String actionby;
 
+    public static NeptuneActivity fromCsv(String input) {
+        var output = input.split(",");
+        return NeptuneActivity.builder()
+                .id(output[0])
+                .ipAddr(output[1])
+                .action(output[2])
+                .accountNo(output[3])
+                .actionId(Integer.valueOf(output[4]))
+                .name(output[5])
+                .actionby(output[6])
+                .build();
+
+    }
 }

@@ -1,4 +1,4 @@
-package com.moonbank.pipeline;
+package com.moonbank.function;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;

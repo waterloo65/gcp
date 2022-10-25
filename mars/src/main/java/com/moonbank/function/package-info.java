@@ -17,4 +17,4 @@
 /**
  * All Dataflow pipelines contained within the project.
  */
-package com.moonbank.pipeline;
+package com.moonbank.function;
