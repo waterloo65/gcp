@@ -109,8 +109,7 @@ public class MarsActivitiesPipeline {
         // Write the raw logs to BigQuery
         logs.apply("WriteRawToBQ",
                 BigQueryIO.<String>write().to(options.getRawTable())
-                        .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
-                        .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
+                        .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND));
 
         // Write the activity to BigQuery
         logs.apply("ParseCsv", MapElements
@@ -119,8 +118,7 @@ public class MarsActivitiesPipeline {
             .apply("WindowByMinute", Window.into(FixedWindows.of(Duration.standardSeconds(options.getWindowDuration()))))
             .apply("WriteToBQ",
                         BigQueryIO.<MarsActivity>write().to(options.getOutputTable()).useBeamSchema()
-                                .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
-                                .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
+                                .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND));
 
 
         LOG.info("Building pipeline...");
