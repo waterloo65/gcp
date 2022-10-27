@@ -27,3 +27,8 @@ mvn compile exec:java \
 --rawTable=${RAW_TABLE} \
 --outputTable=${OUTPUT_TABLE}"
 ```
+
+#Sample csv message
+```
+20221016000006358410,203.172.77.210,SCHEDULE,GB63IOEE41708907941843,GB65TBIT49649150943375,691.42,Sara Anderson
+```
