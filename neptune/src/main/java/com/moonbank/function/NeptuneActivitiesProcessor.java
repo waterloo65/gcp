@@ -22,7 +22,6 @@ import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.InsertAllRequest;
-import com.google.cloud.bigquery.InsertAllResponse;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.functions.CloudEventsFunction;
 import com.google.gson.Gson;
@@ -41,7 +40,7 @@ public class NeptuneActivitiesProcessor implements CloudEventsFunction {
 
     private final BigQuery bigQuery;
     private final TableId rawTableId;
-    private final TableId acitvityTableId;
+    private final TableId acitvitiesTableId;
 
 
     public NeptuneActivitiesProcessor() {
@@ -50,7 +49,8 @@ public class NeptuneActivitiesProcessor implements CloudEventsFunction {
         // once, and can be reused for multiple requests.
         bigQuery = BigQueryOptions.getDefaultInstance().getService();
         rawTableId = TableId.of("neptune", "raw");
-        acitvityTableId = TableId.of("neptune", "activity");
+        acitvitiesTableId = TableId.of("neptune", "activities");
+
     }
 
     @Override
@@ -122,7 +122,7 @@ public class NeptuneActivitiesProcessor implements CloudEventsFunction {
 
             response =
                     bigQuery.insertAll(
-                            InsertAllRequest.newBuilder(acitvityTableId)
+                            InsertAllRequest.newBuilder(acitvitiesTableId)
                                     .addRow(row)
                                     .build());
 
