@@ -17,6 +17,13 @@
 package com.moonbank.function;
 
 
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.InsertAllRequest;
+import com.google.cloud.bigquery.InsertAllResponse;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.functions.CloudEventsFunction;
 import com.google.gson.Gson;
 import io.cloudevents.CloudEvent;
@@ -24,10 +31,27 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 @Slf4j
 public class NeptuneActivitiesProcessor implements CloudEventsFunction {
+
+    private final BigQuery bigQuery;
+    private final TableId rawTableId;
+    private final TableId acitvityTableId;
+
+
+    public NeptuneActivitiesProcessor() {
+
+        // Initialize client that will be used to send requests. This client only needs to be created
+        // once, and can be reused for multiple requests.
+        bigQuery = BigQueryOptions.getDefaultInstance().getService();
+        rawTableId = TableId.of("neptune", "raw");
+        acitvityTableId = TableId.of("neptune", "activity");
+    }
 
     @Override
     public void accept(CloudEvent event) {
@@ -43,9 +67,74 @@ public class NeptuneActivitiesProcessor implements CloudEventsFunction {
         PubSubBody body = gson.fromJson(cloudEventData, PubSubBody.class);
         // Retrieve and decode PubSub message data
         String encodedData = body.getMessage().getData();
-        String decodedData =
+        String payload =
                 new String(Base64.getDecoder().decode(encodedData), StandardCharsets.UTF_8);
-        log.info("Hello, " + decodedData + "!");
 
+        log.info("payload={}", payload);
+
+        insertToBigQuery(payload);
+
+        log.info("Successfully insert to biqquery");
+
+    }
+
+    private void insertToBigQuery(String csv) {
+        try {
+            // -- insert raw message
+            var response =
+                    bigQuery.insertAll(
+                            InsertAllRequest.newBuilder(rawTableId)
+                                    .addRow(Map.of("message", csv))
+                                    .build());
+
+            if (response.hasErrors()) {
+                for (Map.Entry<Long, List<BigQueryError>> entry : response.getInsertErrors().entrySet()) {
+                    log.error("Response error: {}", entry.getValue());
+                }
+                throw new RuntimeException("Fail to insert raw record");
+            }
+
+
+            log.info("Inserted raw message");
+
+            // -- insert activity message
+            var activity = NeptuneActivity.fromCsv(csv);
+
+            /*
+             * SCHEMA:
+             * id:string
+             * ipaddress:string
+             * action:string
+             * accountnumber:string
+             * actionid:integer
+             * name:string
+             * actionby:string
+             */
+            // Create rows to insert
+            Map<String, Object> row = new HashMap<>();
+            row.put("id", activity.id);
+            row.put("ipaddress", activity.ipAddr);
+            row.put("action", activity.action);
+            row.put("accountnumber", activity.accountNo);
+            row.put("actionid", activity.actionId);
+            row.put("name", activity.name);
+            row.put("actionby", activity.actionby);
+
+            response =
+                    bigQuery.insertAll(
+                            InsertAllRequest.newBuilder(acitvityTableId)
+                                    .addRow(row)
+                                    .build());
+
+            if (response.hasErrors()) {
+                for (Map.Entry<Long, List<BigQueryError>> entry : response.getInsertErrors().entrySet()) {
+                    log.error("Response error: {}", entry.getValue());
+                }
+                throw new RuntimeException("Fail to insert actvity record");
+            }
+
+        } catch (BigQueryException e) {
+            log.error("Insert operation not performed", e);
+        }
     }
 }
