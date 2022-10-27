@@ -7,8 +7,6 @@ export RUNTIME=java11
 export SOURCE_PATH=./
 export MAIN_CLASS=com.moonbank.function.NeptuneActivitiesProcessor
 export PUBSUB_TOPIC=neptune-activities
-export RAW_TABLE=${PROJECT_ID}:neptune.raw
-export OUTPUT_TABLE=${PROJECT_ID}:neptune.activities
 
 gcloud functions deploy neptune-activities-function \
 --gen2 \
@@ -18,4 +16,9 @@ gcloud functions deploy neptune-activities-function \
 --entry-point=${MAIN_CLASS} \
 --trigger-topic=${PUBSUB_TOPIC}
 
+```
+
+#Sample csv message
+```
+20200812040801981475,195.174.170.81,UPDATE,GB25BZMX47593824219489,4,Emily Blair,STAFF
 ```
