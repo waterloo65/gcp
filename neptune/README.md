@@ -8,7 +8,7 @@ export SOURCE_PATH=./
 export MAIN_CLASS=com.moonbank.function.NeptuneActivitiesProcessor
 export PUBSUB_TOPIC=neptune-activities
 
-gcloud functions deploy neptune-activities-function \
+gcloud functions deploy mb-deuser9-neptune-function \
 --gen2 \
 --region=${REGION} \
 --runtime=${RUNTIME} \
@@ -20,6 +20,6 @@ gcloud functions deploy neptune-activities-function \
 
 #Sample csv message
 ```
-20200812040801981475,195.174.170.81,UPDATE,GB25BZMX47593824219489,6,Emily Blair,STAFF
-20200812040801981475,195.174.170.81,UPDATE,GB25BZMX47593824219489,7,Emily Blair,STAFF
+20200812040801981475,195.174.170.81,UPDATE,GB25BZMX47593824219489,8,Emily Blair,STAFF
+20200812040801981475,195.174.170.81,UPDATE,GB25BZMX47593824219489,9,Emily Blair,STAFF
 ```
