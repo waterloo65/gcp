@@ -29,13 +29,18 @@ import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.schemas.Schema;
 import org.apache.beam.sdk.transforms.DoFn;
+import org.apache.beam.sdk.transforms.Flatten;
 import org.apache.beam.sdk.transforms.MapElements;
 import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.Row;
 import org.apache.beam.sdk.values.TypeDescriptor;
+import org.apache.beam.sdk.values.TypeDescriptors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.List;
 
 
 public class MarsActivitiesPipeline {
@@ -93,6 +98,7 @@ public class MarsActivitiesPipeline {
             .addStringField("customername")
             .build();
 
+
     /**
      * Runs the pipeline to completion with the specified options. This method does
      * not wait until the pipeline is finished before returning. Invoke
@@ -114,11 +120,17 @@ public class MarsActivitiesPipeline {
          * 2) Transform something
          * 3) Write something
          */
-        PCollection<String> logs = pipeline
+//        PCollection<String>
+          PCollection<String> logs = pipeline
                 // Read in lines from GCS and Parse to Activities
                 .apply("ReadMessage", PubsubIO.readStrings()
                     .withTimestampAttribute("timestamp")
-                    .fromTopic(options.getInputTopic()));
+                    .fromTopic(options.getInputTopic()))
+                .apply("Split", MapElements
+                        .into(TypeDescriptors.lists(TypeDescriptors.strings()))
+                        .via( i -> Arrays.asList(i.split("\n"))))
+                .apply(Flatten.iterables());
+
 
         // Write the raw logs to BigQuery
         logs.apply("WriteRawToBQ",
@@ -132,7 +144,7 @@ public class MarsActivitiesPipeline {
         logs.apply("ParseCsv", MapElements
                 .into(TypeDescriptor.of(MarsActivity.class))
                 .via(MarsActivity::fromCsv))
-                .apply("ConvertToRow", ParDo.of(new DoFn<MarsActivity, Row>() {
+            .apply("ConvertToRow", ParDo.of(new DoFn<MarsActivity, Row>() {
                     @ProcessElement
                     public void processElement(@Element MarsActivity activity, OutputReceiver<Row> r) {
                         Row row = Row.withSchema(activitySchema)
@@ -147,7 +159,7 @@ public class MarsActivitiesPipeline {
                         r.output(row);
                     }
                 })).setRowSchema(activitySchema)
-                .apply("WriteToBQ",
+            .apply("WriteToBQ",
                         BigQueryIO.<Row>write().to(options.getOutputTable())
                                 .useBeamSchema()
                                 .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
