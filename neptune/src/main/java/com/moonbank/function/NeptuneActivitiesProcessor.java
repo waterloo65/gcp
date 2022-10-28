@@ -39,6 +39,9 @@ import java.util.Map;
 @Slf4j
 public class NeptuneActivitiesProcessor implements CloudEventsFunction {
 
+    private static final String PROJECT_ID = "mb-deuser9";
+    private static final String DATASET = "neptune";
+
     private final BigQuery bigQuery;
     private final TableId rawTableId;
     private final TableId acitvitiesTableId;
@@ -49,9 +52,8 @@ public class NeptuneActivitiesProcessor implements CloudEventsFunction {
         // Initialize client that will be used to send requests. This client only needs to be created
         // once, and can be reused for multiple requests.
         bigQuery = BigQueryOptions.getDefaultInstance().getService();
-        rawTableId = TableId.of("neptune", "raw");
-        acitvitiesTableId = TableId.of("neptune", "activities");
-
+        rawTableId = TableId.of(PROJECT_ID, DATASET, "raw");
+        acitvitiesTableId = TableId.of(PROJECT_ID, DATASET, "activities");
     }
 
     @Override
