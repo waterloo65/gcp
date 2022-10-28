@@ -29,6 +29,7 @@ import io.cloudevents.CloudEvent;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -72,7 +73,8 @@ public class NeptuneActivitiesProcessor implements CloudEventsFunction {
 
         log.info("payload={}", payload);
 
-        insertToBigQuery(payload);
+        Arrays.stream(payload.split("\n"))
+                .forEach(this::insertToBigQuery);
 
         log.info("Successfully insert to biqquery");
 
