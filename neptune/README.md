@@ -6,7 +6,7 @@ export REGION='us-central1'
 export RUNTIME=java11
 export SOURCE_PATH=./
 export MAIN_CLASS=com.moonbank.function.NeptuneActivitiesProcessor
-export PUBSUB_TOPIC=neptune-activities
+export PUBSUB_TOPIC=activities
 
 gcloud functions deploy mb-deuser9-neptune-function \
 --gen2 \
